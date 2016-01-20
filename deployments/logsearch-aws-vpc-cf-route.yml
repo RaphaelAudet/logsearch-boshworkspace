@@ -1,5 +1,5 @@
 ---
-name: logsearch-aws-vpc
+name: logsearch-aws-vpc-cf-router
 director_uuid: current
 releases:
 - name: logsearch
@@ -8,21 +8,26 @@ releases:
 - name: route-registrar
   version: latest
   git: https://github.com/cloudfoundry-community/route-registrar-boshrelease.git
+- name: logsearch-for-cloudfoundry
+  version: 3
+  git: https://github.com/logsearch/logsearch-for-cloudfoundry.git
+  path: logsearch-for-cloudfoundry-boshrelease
 
 stemcells:
 - name: bosh-aws-xen-ubuntu-trusty-go_agent
-  version: 2778
+  version: 2941
 
 templates:
 - logsearch/deployment.yml
-- logsearch/jobs.yml
 - logsearch/jobs-route-registrar.yml
+- logsearch/jobs.yml
 - logsearch/properties.yml
 - logsearch/infrastructure-aws-vpc.yml
+- logsearch/networking.yml
 - logsearch/logstash-filters.yml
 
 meta:
-  environment: logsearch-aws-vpc
+  environment: logsearch-aws-vpc-cf-router
   zones:
     z1:
       ipmask: 10.10.7
@@ -35,3 +40,31 @@ meta:
       - host: 10.10.3.6:4222
         user: nats
         password: c1oudc0w
+  api_host_header: c1oudc0w
+  ingestor_cloudfoundry-firehose:
+    cf-domain: PUBLICIP.xip.io
+    firehose-password: password
+  skip-ssl-validation: false
+
+  zones:
+    z1: us-west-2a
+
+  networks:
+    ls1:
+      dns: [ 10.10.0.2 ]
+      quad: "7"
+      net_id: SUBNET_ID
+      security_groups:
+      - CLOUDFOUNDRY_SG
+
+  instances:
+    log_parser:               1
+    elasticsearch_persistent: 2
+
+  instance_types:
+    common: c3.large
+    elasticsearch: c3.large
+
+  persistent_disks:
+    queue: 5000
+    elasticsearch: 10000
